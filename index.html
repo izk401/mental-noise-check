@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メンタルノイズ汚染度チェック</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+  --ink: #1a1410;
+  --ink-mid: #4a3f35;
+  --ink-light: #8a7a6a;
+  --paper: #faf7f2;
+  --paper-warm: #f2ece0;
+  --paper-dark: #e8dfd0;
+  --accent: #8b3a2a;
+  --accent-light: #c4614e;
+  --gold: #b8920a;
+  --level1: #2d6a4f;
+  --level2: #1d6fa4;
+  --level3: #8b6914;
+  --level4: #8b3a2a;
+  --level5: #5c1a2e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* Decorative paper texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(139,122,106,0.05) 28px, rgba(139,122,106,0.05) 29px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 0 80px;
+}
+
+/* Header */
+.hero {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 2.5rem 2rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0; right: 0;
+  height: 24px;
+  background: var(--paper);
+  clip-path: ellipse(55% 100% at 50% 100%);
+}
+.hero-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-light);
+  margin-bottom: 0.5rem;
+  font-family: 'Noto Serif JP', serif;
+}
+.hero h1 {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(22px, 5vw, 28px);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--paper);
+  margin-bottom: 0.75rem;
+}
+.hero-sub {
+  font-size: 12px;
+  color: var(--ink-light);
+  line-height: 1.6;
+}
+
+/* Progress */
+.progress-wrap {
+  padding: 1.25rem 1.5rem 0.75rem;
+}
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-light);
+  margin-bottom: 6px;
+}
+.progress-track {
+  height: 3px;
+  background: var(--paper-dark);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--gold) 100%);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+
+/* Section header */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.6rem 1.5rem;
+  margin: 0.5rem 0 0;
+  background: var(--paper-warm);
+  border-left: 3px solid var(--accent);
+}
+.section-head .sh-num {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  font-family: 'Noto Serif JP', serif;
+}
+.section-head .sh-rule {
+  font-size: 11px;
+  color: var(--ink-mid);
+  flex: 1;
+}
+.section-head .sh-rule strong {
+  color: var(--accent);
+}
+
+/* Question items */
+.q-list {
+  padding: 0 1rem;
+}
+.q-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 8px;
+  border-bottom: 0.5px solid var(--paper-dark);
+  transition: background 0.15s;
+}
+.q-item:hover { background: rgba(139,122,106,0.04); }
+.q-num {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 11px;
+  color: var(--ink-light);
+  min-width: 22px;
+  padding-top: 3px;
+  text-align: right;
+}
+.q-text {
+  font-size: 14px;
+  line-height: 1.6;
+  flex: 1;
+  color: var(--ink);
+}
+.q-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
+.q-btn {
+  width: 40px;
+  height: 34px;
+  border: 1px solid var(--paper-dark);
+  background: var(--paper);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  color: var(--ink-mid);
+}
+.q-btn:hover { border-color: var(--ink-light); }
+.q-btn.active-maru {
+  background: #e8f5ee;
+  border-color: var(--level1);
+  color: var(--level1);
+  font-weight: 700;
+}
+.q-btn.active-batsu {
+  background: #fdecea;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* CTA button */
+.cta-wrap {
+  padding: 1.5rem 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cta-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.05em;
+}
+.cta-primary {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+}
+.cta-primary:hover { background: var(--accent); }
+.cta-primary:disabled { background: var(--ink-light); cursor: not-allowed; }
+.cta-secondary {
+  background: transparent;
+  color: var(--ink-mid);
+  border: 1px solid var(--paper-dark);
+}
+.cta-secondary:hover { border-color: var(--ink-light); background: var(--paper-warm); }
+
+/* Result */
+.result-panel {
+  display: none;
+  margin: 1.5rem 1rem;
+  border: 1px solid var(--paper-dark);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper);
+}
+.result-panel.show { display: block; }
+.result-header {
+  padding: 1.5rem;
+  text-align: center;
+  position: relative;
+}
+.result-score-label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  margin-bottom: 4px;
+  font-family: 'Noto Serif JP', serif;
+}
+.result-score {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.result-score-max {
+  font-size: 13px;
+  color: var(--ink-light);
+}
+.result-divider {
+  height: 1px;
+  background: var(--paper-dark);
+  margin: 0 1.5rem;
+}
+.result-level {
+  padding: 1.25rem 1.5rem;
+}
+.level-tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  padding: 3px 10px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+}
+.result-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.result-desc {
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink-mid);
+}
+.result-points {
+  list-style: none;
+  margin-top: 10px;
+}
+.result-points li {
+  font-size: 13px;
+  color: var(--ink-mid);
+  padding: 3px 0 3px 1.2em;
+  position: relative;
+  line-height: 1.6;
+}
+.result-points li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  font-size: 10px;
+  top: 5px;
+}
+
+/* QR */
+.qr-section {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--paper-dark);
+  text-align: center;
+}
+.qr-label {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--ink-light);
+  margin-bottom: 12px;
+  font-family: 'Noto Serif JP', serif;
+}
+.qr-box {
+  display: inline-block;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--paper-dark);
+}
+#qr-code { display: inline-block; }
+
+/* Answered highlight */
+.q-item.answered .q-text { color: var(--ink-mid); }
+
+/* Scroll reveal */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.result-panel.show {
+  animation: fadeUp 0.4s ease both;
+}
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="hero">
+    <div class="hero-eyebrow">MENTAL NOISE DIAGNOSIS</div>
+    <h1>メンタルノイズ<br>汚染度レベルチェック</h1>
+    <p class="hero-sub">全30問、○か×で答えてください。<br>回答が完了すると汚染度レベルを診断します。</p>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="prog-text">0 / 30 回答済み</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="prog-fill"></div>
+    </div>
+  </div>
+
+  <!-- Section A -->
+  <div class="section-head">
+    <span class="sh-num">Q 01 – 15</span>
+    <span class="sh-rule"><strong>○ = 0点</strong> ／ × = 5点</span>
+  </div>
+  <div class="q-list" id="list-a"></div>
+
+  <!-- Section B -->
+  <div class="section-head">
+    <span class="sh-num">Q 16 – 30</span>
+    <span class="sh-rule"><strong>○ = 5点</strong> ／ × = 0点</span>
+  </div>
+  <div class="q-list" id="list-b"></div>
+
+  <div class="cta-wrap">
+    <button class="cta-btn cta-primary" id="calc-btn" onclick="showResult()" disabled>結果を見る（未回答あり）</button>
+    <button class="cta-btn cta-secondary" onclick="resetAll()">クリア（最初からやり直す）</button>
+  </div>
+
+  <div class="result-panel" id="result-panel">
+    <div class="result-header" id="result-header">
+      <div class="result-score-label" id="r-score-label">合計スコア</div>
+      <div class="result-score" id="r-score">0</div>
+      <div class="result-score-max">/ 150点</div>
+    </div>
+    <div class="result-divider"></div>
+    <div class="result-level">
+      <div class="level-tag" id="r-tag"></div>
+      <div class="result-title" id="r-title"></div>
+      <div class="result-desc" id="r-desc"></div>
+      <ul class="result-points" id="r-points"></ul>
+    </div>
+    <div class="result-divider"></div>
+    <div class="qr-section">
+      <div class="qr-label">QRコードでシェア</div>
+      <div class="qr-box">
+        <div id="qr-code"></div>
+      </div>
+      <p style="font-size:11px; color:var(--ink-light); margin-top:10px; line-height:1.6;">このQRコードを友人に見せて<br>同じチェックをしてもらいましょう</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const questions = [
+  { id:1,  text:'人生で奇跡的な出来事が5回以上起こっている', s:'a' },
+  { id:2,  text:'自分は強運だと思う', s:'a' },
+  { id:3,  text:'直感がよく当たる', s:'a' },
+  { id:4,  text:'宝くじで1万円以上当たったことがある（結婚式の2次会の景品、懸賞の当選、万馬券なども可）', s:'a' },
+  { id:5,  text:'声が大きい、もしくは小さくてもよく喋る', s:'a' },
+  { id:6,  text:'多くの人がしたことない経験の持ち主', s:'a' },
+  { id:7,  text:'意識を失う程度以上の事故にあったことがある', s:'a' },
+  { id:8,  text:'人に道をよく聞かれる', s:'a' },
+  { id:9,  text:'異性によくもてる', s:'a' },
+  { id:10, text:'クラスの人気者だった', s:'a' },
+  { id:11, text:'クラスでいじめられていた', s:'a' },
+  { id:12, text:'有名人・著名人の友達（知り合い）がいる', s:'a' },
+  { id:13, text:'仕事で目覚ましい業績をあげたことがある', s:'a' },
+  { id:14, text:'信号が目の前でよく青に変わる', s:'a' },
+  { id:15, text:'旅行などで雨の予報なのに晴れることが多い', s:'a' },
+  { id:16, text:'人によく裏切られる・騙される', s:'b' },
+  { id:17, text:'新品の家電が1年以内に壊れたことがある', s:'b' },
+  { id:18, text:'我慢強い', s:'b' },
+  { id:19, text:'努力が好き', s:'b' },
+  { id:20, text:'自分の力不足だと反省する', s:'b' },
+  { id:21, text:'誰に対しても常に「いい人」であろうとする', s:'b' },
+  { id:22, text:'弱い立場の人に対して過度に共感・同調する', s:'b' },
+  { id:23, text:'自分の考えや行動が裏目に出ることが多い', s:'b' },
+  { id:24, text:'善意で何かをしたら相手にキレられたことがある', s:'b' },
+  { id:25, text:'自分は人に気を遣える方だ（または人に言われる）', s:'b' },
+  { id:26, text:'大事な時に限って病気になったりケガをする', s:'b' },
+  { id:27, text:'空気を読めるタイプ', s:'b' },
+  { id:28, text:'楽しい事をした後に罪悪感を感じる', s:'b' },
+  { id:29, text:'自分の本音・本心が分からない', s:'b' },
+  { id:30, text:'相手の愛情を疑いやすい', s:'b' },
+];
+
+const levels = [
+  {
+    min:0, max:30,
+    tag:'汚染度レベル 1', tagBg:'#e8f5ee', tagColor:'#2d6a4f', headerBg:'#2d6a4f',
+    title:'楽しく人生を謳歌している',
+    desc:'特に深刻な悩みや問題はありません。あなたは人生を自由に楽しめているタイプです。',
+    points:['ドリームキラーを無視して我が道をいく','自分を信じてこのまま進みましょう']
+  },
+  {
+    min:31, max:60,
+    tag:'汚染度レベル 2', tagBg:'#e6f1fb', tagColor:'#1d6fa4', headerBg:'#1d6fa4',
+    title:'平均レベルの汚染度',
+    desc:'可もなく不可もなく平凡な人生を歩んでいます。',
+    points:['「こうなったらいいな」という無意識レベルの声に気づいていない','潜在意識のメンタルノイズがクリアになれば人生がスムーズになります']
+  },
+  {
+    min:61, max:90,
+    tag:'汚染度レベル 3', tagBg:'#fef3cd', tagColor:'#8b6914', headerBg:'#8b6914',
+    title:'現代社会に最も多いタイプ',
+    desc:'日常生活には問題ないレベルですが、常にストレス・不満・不安感を抱えています。',
+    points:['心の底からの満足感を感じられていない','ちょっと頑張りすぎている傾向がある','一歩のところで達成できず、自分でチャンスを潰してしまうことも','メンタルノイズをクリアにすれば思い通りの人生になります']
+  },
+  {
+    min:91, max:120,
+    tag:'汚染度レベル 4', tagBg:'#fdecea', tagColor:'#8b3a2a', headerBg:'#8b3a2a',
+    title:'日常生活がうまくいっていない',
+    desc:'解決方法がわからないからうまくいかない状態です。',
+    points:['依存・借金・不倫などの問題が生じやすい','メンタルノイズを直視することが必要','解決すればミラクルが起きます！']
+  },
+  {
+    min:121, max:150,
+    tag:'汚染度レベル 5', tagBg:'#f9e6ec', tagColor:'#5c1a2e', headerBg:'#5c1a2e',
+    title:'社会的にうまくいっていない',
+    desc:'意識・思考が暴走して無意識からの声が届かない状態。',
+    points:['成功していても家庭がボロボロ、両極端になりがち','何をやってもうまくいかないと感じる','無理をしているので最終的に失敗しやすい','専門家のサポートを検討することをお勧めします']
+  },
+];
+
+let answers = {};
+let qrInstance = null;
+
+function calcScore(id, choice) {
+  if (id <= 15) return choice === 'batsu' ? 5 : 0;
+  return choice === 'maru' ? 5 : 0;
+}
+
+function render() {
+  ['a','b'].forEach(s => {
+    const el = document.getElementById('list-' + s);
+    el.innerHTML = '';
+    questions.filter(q => q.s === s).forEach(q => {
+      const div = document.createElement('div');
+      div.className = 'q-item';
+      div.id = 'qi-' + q.id;
+      div.innerHTML = `
+        <span class="q-num">${String(q.id).padStart(2,'0')}</span>
+        <span class="q-text">${q.text}</span>
+        <div class="q-btns">
+          <button class="q-btn" id="m-${q.id}" onclick="pick(${q.id},'maru')">○</button>
+          <button class="q-btn" id="b-${q.id}" onclick="pick(${q.id},'batsu')">×</button>
+        </div>
+      `;
+      el.appendChild(div);
+    });
+  });
+}
+
+function pick(id, choice) {
+  answers[id] = choice;
+  document.getElementById('m-' + id).className = 'q-btn' + (choice === 'maru' ? ' active-maru' : '');
+  document.getElementById('b-' + id).className = 'q-btn' + (choice === 'batsu' ? ' active-batsu' : '');
+  document.getElementById('qi-' + id).classList.add('answered');
+  updateProgress();
+}
+
+function updateProgress() {
+  const n = Object.keys(answers).length;
+  const pct = Math.round(n / 30 * 100);
+  document.getElementById('prog-text').textContent = n + ' / 30 回答済み';
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  const btn = document.getElementById('calc-btn');
+  if (n === 30) {
+    btn.disabled = false;
+    btn.textContent = '結果を見る →';
+  } else {
+    btn.disabled = true;
+    btn.textContent = '結果を見る（未回答 ' + (30 - n) + ' 問）';
+  }
+}
+
+function showResult() {
+  let total = 0;
+  for (let id in answers) total += calcScore(Number(id), answers[id]);
+  const lv = levels.find(l => total >= l.min && total <= l.max) || levels[4];
+
+  const header = document.getElementById('result-header');
+  header.style.background = lv.headerBg;
+  header.style.color = '#faf7f2';
+  document.getElementById('r-score-label').style.color = 'rgba(250,247,242,0.7)';
+  document.getElementById('r-score-label').textContent = '合計スコア';
+  document.getElementById('r-score').textContent = total;
+
+  const tag = document.getElementById('r-tag');
+  tag.textContent = lv.tag;
+  tag.style.background = lv.tagBg;
+  tag.style.color = lv.tagColor;
+  tag.style.border = '1px solid ' + lv.tagColor + '40';
+
+  document.getElementById('r-title').textContent = lv.title;
+  document.getElementById('r-desc').textContent = lv.desc;
+  const pts = document.getElementById('r-points');
+  pts.innerHTML = lv.points.map(p => `<li>${p}</li>`).join('');
+
+  // QR code
+  const qrEl = document.getElementById('qr-code');
+  qrEl.innerHTML = '';
+  const url = window.location.href.split('?')[0];
+  if (window.QRCode) {
+    new QRCode(qrEl, {
+      text: url,
+      width: 160,
+      height: 160,
+      colorDark: '#1a1410',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+
+  const panel = document.getElementById('result-panel');
+  panel.classList.add('show');
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+function resetAll() {
+  answers = {};
+  document.getElementById('result-panel').classList.remove('show');
+  render();
+  updateProgress();
+  window.scrollTo({ behavior: 'smooth', top: 0 });
+}
+
+render();
+updateProgress();
+</script>
+</body>
+</html>
